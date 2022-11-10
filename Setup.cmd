@@ -6,6 +6,8 @@ set maxsize=4294
 
 md %cpath%\Mount
 
+Del /Q %cpath%\install.wim
+
 REM SourceIndexを以下のコマンドで確認
 REM Dism /Get-ImageInfo /ImageFile:%cpath%\install.esd
 Dism /Export-Image /SourceImageFile:%cpath%\install.esd /SourceIndex:3 /DestinationImageFile:%cpath%\install.wim /Compress:max /Checkintegrity
@@ -58,7 +60,7 @@ Dism /Image:%cpath%\Mount /Remove-ProvisionedAppxPackage /PackageName:Microsoft.
 Dism /Image:%cpath%\Mount /Remove-ProvisionedAppxPackage /PackageName:Microsoft.WindowsStore_11910.1002.513.0_neutral_~_8wekyb3d8bbwe
 
 REM Dism /Image:%cpath%\Mount /Get-Capabilities > %cpath%\Capabilities.txt
-REM ファックスなど削除
+REM InternetExplorer、ファックスなど削除
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:App.StepsRecorder~~~~0.0.1.0
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Hello.Face.18967~~~~0.0.1.0
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Hello.Face.Migration.18967~~~~0.0.1.0
@@ -69,11 +71,11 @@ Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:App.Support.QuickAs
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Language.Speech~~~ja-JP~0.0.1.0
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Language.TextToSpeech~~~ja-JP~0.0.1.0
 Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Language.Handwriting~~~ja-JP~0.0.1.0
+Dism /Image:%cpath%\Mount /Remove-Capability /CapabilityName:Browser.InternetExplorer~~~~0.0.11.0
 
 REM Dism /Image:%cpath%\Mount /Get-Packages > %cpath%\Packages.txt
-REM InternetExplorerなど削除
 Dism /Image:%cpath%\Mount /Remove-Package /PackageName:Microsoft-Windows-LanguageFeatures-OCR-ja-jp-Package~31bf3856ad364e35~amd64~~10.0.19041.1
-Dism /Image:%cpath%\Mount /Remove-Package /PackageName:Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.19041.746
+Dism /Image:%cpath%\Mount /Remove-Package /PackageName:Microsoft-Windows-TabletPCMath-Package~31bf3856ad364e35~amd64~~10.0.19041.1865
 
 if exist %cpath%\StoreApp\ (
 	REM 必須パッケージの追加
@@ -101,7 +103,7 @@ REM レジストリの変更（HKEY_LOCAL_MACHINE）
 reg load HKLM\MOUNT %cpath%\Mount\Windows\System32\Config\SOFTWARE
 REM Windows11への更新禁止
 reg add "HKEY_LOCAL_MACHINE\MOUNT\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersion" /t REG_DWORD /d "1" /f
-reg add "HKEY_LOCAL_MACHINE\MOUNT\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersionInfo" /t REG_SZ /d "21H2" /f
+reg add "HKEY_LOCAL_MACHINE\MOUNT\Policies\Microsoft\Windows\WindowsUpdate" /v "TargetReleaseVersionInfo" /t REG_SZ /d "22H2" /f
 reg add "HKEY_LOCAL_MACHINE\MOUNT\Policies\Microsoft\Windows\WindowsUpdate" /v "ProductVersion" /t REG_SZ /d "Windows 10" /f
 REM 最近追加したアプリを表示する
 reg add "HKEY_LOCAL_MACHINE\MOUNT\Policies\Microsoft\Windows\Explorer" /v "HideRecentlyAddedApps" /t REG_DWORD /d "1" /f
@@ -144,6 +146,8 @@ REM OneDrive にサインインするまで OneDrive のネットワーク トラフィックが生成され
 reg add "HKEY_LOCAL_MACHINE\MOUNT\Microsoft\OneDrive" /v "PreventNetworkTrafficPreUserSignIn" /t REG_DWORD /d "1" /f
 REM パスワードの有効期限
 reg add "HKEY_LOCAL_MACHINE\MOUNT\Microsoft\Windows\CurrentVersion\RunOnce" /v "PassAge" /t REG_SZ /d "net accounts /maxpwage:unlimited" /f
+REM 設定の「ゲーム」を非表示にする
+reg add "HKEY_LOCAL_MACHINE\MOUNT\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "hide:gaming-broadcasting;gaming-gamebar;gaming-gamedvr;gaming-gamemode;quietmomentsgame;gaming-xboxnetworking" /f
 reg unload HKLM\MOUNT
 
 REM レジストリの変更（HKEY_USERS）
@@ -193,6 +197,16 @@ REM タイピングと手書き入力
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\InputPersonalization\TrainedDataStore" /v "HarvestContacts" /t REG_DWORD /d "0" /f
 REM ユーザー情報をマイクロソフトに送信しない
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Personalization\Settings" /v "AcceptedPrivacyPolicy" /t REG_DWORD /d "0" /f
+REM 登録されている拡張子は表示しない
+reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "HideFileExt" /t REG_DWORD /d "0" /f
+REM デスクトップに「ネットワーク」のアイコンを追加
+reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /t REG_DWORD /d "0" /f
+REM デスクトップに「ユーザーのファイル」のアイコンを追加
+reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{59031a47-3f72-44a7-89c5-5595fe6b30ee}" /t REG_DWORD /d "0" /f
+REM デスクトップに「コンピューター」のアイコンを追加
+reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" /t REG_DWORD /d "0" /f
+REM デスクトップに「ごみ箱」のアイコンを追加
+reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{645FF040-5081-101B-9F08-00AA002F954E}" /t REG_DWORD /d "0" /f
 REM OneDriveのセットアップしない
 reg delete "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f
 reg delete "HKEY_USERS\TEMP\SOFTWARE\Microsoft\OneDrive" /f
@@ -202,6 +216,11 @@ REM 応答ファイルコピー
 if exist %cpath%\Unattend.xml (
 	md %cpath%\Mount\Windows\Panther
 	copy %cpath%\Unattend.xml %cpath%\Mount\Windows\Panther\Unattend.xml
+)
+
+if exist %cpath%\Script\*.cmd (
+	md %cpath%\Mount\Windows\Setup\Scripts
+	copy /Y %cpath%\Script\*.cmd %cpath%\Mount\Windows\Setup\Scripts\
 )
 
 REM スタートメニューのテンプレート
