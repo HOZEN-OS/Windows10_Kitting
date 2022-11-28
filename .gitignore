@@ -3,3 +3,5 @@
 /install.*
 /install2.*
 /*.xml
+/Drivers
+/Script

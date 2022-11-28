@@ -6,7 +6,8 @@ set maxsize=4294
 
 md %cpath%\Mount
 
-Del /Q %cpath%\install.wim
+del /Q %cpath%\install.wim
+del /Q %cpath%\install*.swm
 
 REM SourceIndexを以下のコマンドで確認
 REM Dism /Get-ImageInfo /ImageFile:%cpath%\install.esd
@@ -99,6 +100,15 @@ if exist %cpath%\Patch\ (
 	)
 )
 
+if exist %cpath%\Drivers\ (
+	REM ドライバー
+	for /d %%d in (%cpath%\Drivers\*) do (
+		for %%f in (%%d\*.inf) do (
+			Dism /Image:%cpath%\Mount /Add-Driver /Driver:"%%f" /ForceUnsigned
+		)
+	)
+)
+
 REM レジストリの変更（HKEY_LOCAL_MACHINE）
 reg load HKLM\MOUNT %cpath%\Mount\Windows\System32\Config\SOFTWARE
 REM Windows11への更新禁止
@@ -163,8 +173,6 @@ reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDelive
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v "SubscribedContent-353696Enabled" /t REG_DWORD /d "0" /f
 REM 検索
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" /v "SearchboxTaskbarMode" /t REG_DWORD /d "0" /f
-REM ニュースと関心事項
-reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Feeds" /v "ShellFeedsTaskbarViewMode" /t REG_DWORD /d "2" /f
 REM Cortanaのボタンを表示する
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v "ShowCortanaButton" /t REG_DWORD /d "0" /f
 REM タスクビューボタンを表示する
@@ -202,11 +210,13 @@ reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Adva
 REM デスクトップに「ネットワーク」のアイコンを追加
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" /t REG_DWORD /d "0" /f
 REM デスクトップに「ユーザーのファイル」のアイコンを追加
-reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{59031a47-3f72-44a7-89c5-5595fe6b30ee}" /t REG_DWORD /d "0" /f
+REM reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{59031a47-3f72-44a7-89c5-5595fe6b30ee}" /t REG_DWORD /d "0" /f
 REM デスクトップに「コンピューター」のアイコンを追加
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" /t REG_DWORD /d "0" /f
 REM デスクトップに「ごみ箱」のアイコンを追加
 reg add "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" /v "{645FF040-5081-101B-9F08-00AA002F954E}" /t REG_DWORD /d "0" /f
+REM アクションセンター無効
+reg add "HKEY_USERS\TEMP\Software\Policies\Microsoft\Windows\Explorer" /v "DisableNotificationCenter" /t REG_DWORD /d "1" /f
 REM OneDriveのセットアップしない
 reg delete "HKEY_USERS\TEMP\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "OneDriveSetup" /f
 reg delete "HKEY_USERS\TEMP\SOFTWARE\Microsoft\OneDrive" /f
@@ -229,15 +239,23 @@ if exist %cpath%\LayoutModification.xml (
 )
 
 REM 不要なショートカットの削除
-del "%cpath%\Mount\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
+del /q "%cpath%\Mount\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
+del /q "%cpath%\Mount\ProgramData\Microsoft\Windows\Start Menu\Programs\Accessibility\Windows 音声認識.lnk"
+rd /s /q "%cpath%\Mount\ProgramData\Microsoft\Windows\Start Menu\Programs\Accessibility"
+rd /s /q "%cpath%\Mount\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Accessibility"
+rd /s /q "%cpath%\Mount\Users\Default\Saved Games"
+rd /s /q "%cpath%\Mount\Users\Default\3D Objects"
+rd /s /q "%cpath%\Mount\Users\Default\OneDrive"
+rd /s /q "%cpath%\Mount\Users\Default\Contacts"
+rd /s /q "%cpath%\Mount\Users\Default\Links"
 
 REM 後処理
 Dism /Cleanup-Image /Image:%cpath%\Mount /StartComponentCleanup /ResetBase
 Dism /Unmount-Image /MountDir:%cpath%\Mount /Commit
 REM UnMountした後にExportすることでディスクサイズ縮小
 Dism /Export-Image /SourceImageFile:%cpath%\install.wim /SourceIndex:1 /DestinationImageFile:%cpath%\install_cleaned.wim
-Del /Q %cpath%\install.wim
-Ren %cpath%\install_cleaned.wim install.wim
+del /Q %cpath%\install.wim
+ren %cpath%\install_cleaned.wim install.wim
 
 REM 4GB超えの場合はFAT32にコピー出来ないので分割する（頭の4桁で比較）
 set file_name=%cpath%\install.wim
